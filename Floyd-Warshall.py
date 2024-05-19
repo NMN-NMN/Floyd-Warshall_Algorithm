@@ -281,7 +281,7 @@ class UI(Path):
         for y in range(self.scale.get()):
             for x in range(self.scale.get()):
                 if values[y][x] != float('inf'):
-                    self.window_top.nametowidget("frame.grid_f.grid").create_text(2 + 25 * x, 3 + 20 * y, text=str(values[y][x]).rjust(3, ' '), fill="red" if self.values[y][x] != values[y][x] and self.values[y][x] != float('inf') else "black", anchor="nw", state="hidden", tags="after")
+                    self.window_top.nametowidget("frame.grid_f.grid").create_text(1 + 25 * x, 2 + 20 * y, text=str(values[y][x]).rjust(3, ' '), fill="red" if self.values[y][x] != values[y][x] and self.values[y][x] != float('inf') else "black", anchor="nw", state="hidden", tags="after")
 
         max_value = float('-inf')
         min_value = float('inf')
