@@ -1,6 +1,7 @@
 import tkinter as tk
 import math
-import random
+# import random
+from numpy import random
 
 class Node():
     def __init__(self, x, y, index, canvas_index, order_index):
@@ -29,7 +30,7 @@ class UI(Path):
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("플로이드-워셜 알고리즘")
-        self.window.geometry("642x900+600+200")
+        self.window.geometry("642x960+600+200")
         self.window.resizable(False, False)
         self.window.update_idletasks()
 
@@ -44,7 +45,6 @@ class UI(Path):
         self.paths = []
         self.selected = []
         self.analyze_widget = []
-        self.collision_sizes = [140, 110, 85, 70, 65, 60, 55, 52, 50, 45, 42, 40, 40, 37, 35, 32]
         
         self.double_linked = tk.IntVar()
         self.order_visible = True
@@ -58,13 +58,13 @@ class UI(Path):
 
     def setting(self):
         frame = tk.Frame(self.window, bd=1, relief="solid")
-        frame.place(x=10, y=10, width=622, height=622)
+        frame.place(x=10, y=10, width=622, height=682)
 
         self.canvas = tk.Canvas(frame, highlightthickness=0, bg="white")
-        self.canvas.place(x=0, y=0, width=620, height=620)
+        self.canvas.place(x=0, y=0, width=620, height=680)
 
         control = tk.Frame(self.window, bd=1, relief="solid")
-        control.place(x=10, y=642, width=622, height=250)
+        control.place(x=10, y=642, width=622, height=310)
 
         control_detail = tk.Frame(control)
         control_detail.grid(row=0, column=0, columnspan=2, pady=(15, 0))
@@ -85,12 +85,16 @@ class UI(Path):
         tk.Radiobutton(check_frame, text="단방향 + 양뱡항", value=2, variable=self.double_linked, command=self.update).grid(row=0, column=3, padx=10)
         tk.Radiobutton(check_frame, text="단방향", value=3, variable=self.double_linked, command=self.update).grid(row=0, column=4, padx=10)
 
-        tk.Label(control, text="노드 갯수: ").grid(row=1, column=0, padx=10, pady=(15, 0))
-        self.scale = tk.Scale(control, command=lambda e: self.update(), variable=tk.IntVar(value=100), orient="horizontal", from_=25, to=400, tickinterval=25, resolution=25, length=515)
+        tk.Label(control, text="노드 갯수: ").grid(row=1, column=0, padx=10)
+        self.scale = tk.Scale(control, command=lambda e: self.make_node(), variable=tk.IntVar(value=100), orient="horizontal", from_=25, to=400, tickinterval=25, resolution=25, length=515)
         self.scale.grid(row=1, column=1)
 
+        tk.Label(control, text="거리: ").grid(row=2, column=0, padx=10)
+        self.node_between_length = tk.Scale(control, command=lambda e: self.update(), variable=tk.IntVar(value=100), orient="horizontal", from_=0, to=600, tickinterval=50, resolution=1, length=515)
+        self.node_between_length.grid(row=2, column=1)
+
         result_frame = tk.Frame(control)
-        result_frame.grid(row=2, column=0, columnspan=2, pady=(15, 0))
+        result_frame.grid(row=3, column=0, columnspan=2, pady=(10, 0))
 
         tk.Label(result_frame, text="최단 경로: ").grid(row=0, column=0)
         tk.Label(result_frame, text="최단 길이: ").grid(row=1, column=0)
@@ -319,26 +323,36 @@ class UI(Path):
         self.canvas.delete("all")
 
         overlap_size = 10
+        cell_size = (overlap_size * 2) + self.size
+        length = math.sqrt(self.scale.get()) + 1 if pow(math.sqrt(self.scale.get()), 2) < self.scale.get() else math.sqrt(self.scale.get())
+        stretch = 600 / (length * cell_size)
 
-        for y in range(20):
-            for x in range(20):
-                while (True):
-                    x, y = random.randint(10, 600), random.randint(10, 600)
-                    collisions = self.canvas.find_overlapping(x - overlap_size, y - overlap_size, x + self.size + overlap_size, y + self.size + overlap_size)
+        for count in range(self.scale.get()):
+            while (True):
+                x, y = random.randint(10, length * cell_size), random.randint(10, length * cell_size)
+                collisions = self.canvas.find_overlapping(x - overlap_size, y - overlap_size, x + self.size + overlap_size, y + self.size + overlap_size)
 
-                    if len(collisions) <= 0:
-                        index = self.canvas.create_oval(x, y, x + self.size, y + self.size, fill="white")
-                        order_index = self.canvas.create_text(x + self.size // 2, y - 7, text=f"{len(self.nodes) + 1}", state="hidden", tags="order")
-                        self.nodes.append(Node(x, y, len(self.nodes), index, order_index))
-                        break
+                if len(collisions) <= 0:
+                    index = self.canvas.create_oval(x, y, x + self.size, y + self.size, fill="white")
+                    order_index = self.canvas.create_text(x + self.size // 2, y - 7, text=f"{len(self.nodes) + 1}", state="hidden", tags="order")
+                    self.nodes.append(Node(x, y, len(self.nodes), index, order_index))
+                    break
+        
+        for node in self.nodes:
+            self.canvas.coords(node.canvas_index, int(node.x * stretch), int(node.y * stretch), int(node.x * stretch) + self.size, int(node.y * stretch) + self.size)
+            self.canvas.coords(node.order_index, int(node.x * stretch) + self.size // 2, int(node.y * stretch) - 10)
+            node.x, node.y = int(node.x * stretch), int(node.y * stretch)
         
         self.update()
 
     def make_value(self):
         self.canvas.delete("value")
         self.canvas.delete("value_line")
-        coll_size = self.collision_sizes[self.scale.get() // 25 - 1]
+        coll_size = self.node_between_length.get()
         self.values = [[float('inf') for i in range(400)] for p in range(400)]
+
+        if coll_size == 0:
+            return
 
         def circle_coords(x, y, x2, y2):
             radian = math.atan2(y2 - y, x2 - x)
@@ -379,8 +393,8 @@ class UI(Path):
 
     def node_visible_count(self):
         for node in self.nodes:
-            self.canvas.itemconfigure(node.canvas_index, state="normal" if node.index < self.scale.get() else "hidden", fill="white", width=1)
-            self.canvas.itemconfigure(node.order_index, state="normal" if node.index < self.scale.get() and self.order_visible else "hidden")
+            self.canvas.itemconfigure(node.canvas_index, state="normal", fill="white", width=1)
+            self.canvas.itemconfigure(node.order_index, state="normal" if self.order_visible else "hidden")
 
     def order_visible_func(self):
         self.order_visible = not self.order_visible
