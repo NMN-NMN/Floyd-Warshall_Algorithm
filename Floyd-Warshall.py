@@ -348,45 +348,64 @@ class UI(Path):
     def make_value(self):
         self.canvas.delete("value")
         self.canvas.delete("value_line")
+        link_way = self.double_linked.get()
         coll_size = self.node_between_length.get()
-        self.values = [[float('inf') for i in range(400)] for p in range(400)]
+        self.values = [[float('inf') for i in range(self.scale.get())] for p in range(self.scale.get())]
 
         if coll_size == 0:
             return
 
-        def circle_coords(x, y, x2, y2):
-            radian = math.atan2(y2 - y, x2 - x)
-            rx = x + math.cos(radian) * (self.size // 2)
-            ry = y + math.sin(radian) * (self.size // 2)
+        def set_bridge(start_node, finish_node, value):
+            def circle_coords(x, y, x2, y2):
+                radian = math.atan2(y2 - y, x2 - x)
+                rx = x + math.cos(radian) * (self.size // 2)
+                ry = y + math.sin(radian) * (self.size // 2)
 
-            radian = math.atan2(y - y2, x - x2)
-            rx2 = x2 + math.cos(radian) * (self.size // 2)
-            ry2 = y2 + math.sin(radian) * (self.size // 2)
+                radian = math.atan2(y - y2, x - x2)
+                rx2 = x2 + math.cos(radian) * (self.size // 2)
+                ry2 = y2 + math.sin(radian) * (self.size // 2)
 
-            return rx, ry, rx2, ry2
+                return rx, ry, rx2, ry2
+        
+            self.values[start_node.index][finish_node.index] = value
+            rx, ry, rx2, ry2 = circle_coords(start_node.x + self.size // 2, start_node.y + self.size // 2, finish_node.x + self.size // 2, finish_node.y + self.size // 2)
+            self.canvas.create_text(rx - (rx - rx2) // 2 + (-8 if self.values[finish_node.index][start_node.index] != float('inf') else 8), ry - (ry - ry2) // 2,
+                                    anchor="center",
+                                    state="hidden" if not self.value_visible else "normal",
+                                    text=f"{self.values[start_node.index][finish_node.index]}",
+                                    tags=("value", f"{start_node.index}_{finish_node.index}_value"))
+            self.canvas.create_line(rx, ry, rx2, ry2, arrow="last", arrowshape=(0, 0, 0), tags=("value_line", f"{start_node.index}_{finish_node.index}"))
+
+        for order in self.canvas.find_withtag("order"):
+            self.canvas.itemconfigure(order, state="hidden")
+
+        collisions = []
 
         for node in self.nodes:
-            if node.index >= self.scale.get(): break
-            collisions = list(self.canvas.find_enclosed(node.x - coll_size, node.y - coll_size, node.x + self.size + coll_size, node.y + self.size + coll_size))
-            del collisions[collisions.index(node.canvas_index)]
+            temp_collisions = list(self.canvas.find_enclosed(node.x - coll_size, node.y - coll_size, node.x + self.size + coll_size, node.y + self.size + coll_size))
+            del temp_collisions[temp_collisions.index(node.canvas_index)]
+            
+            for key in temp_collisions:
+                collisions.append((key, node.index))
 
-            for collision in collisions:
-                if self.find_node_index(collision) == None:
-                    continue
+        random.shuffle(collisions)
 
-                node_c = self.nodes[self.find_node_index(collision)]
-                if len(self.canvas.find_withtag(f"{node_c.index}_{node.index}")) <= 0 and len(self.canvas.find_withtag(f"{node.index}_{node_c.index}")) <= 0:
-                    if self.double_linked.get() == 0 or self.double_linked.get() == 1 or (self.double_linked.get() == 2 and random.randint(0, 10) > 5) or (self.double_linked.get() == 3 and random.randint(0, 10) > 5):
-                        self.values[node.index][node_c.index] = random.randint(1, 31)
-                        self.canvas.create_text(node.x - (node.x - node_c.x) // 2, node.y - (node.y - node_c.y) // 2 - 10, anchor="center", state="hidden" if not self.value_visible else "normal", text=f"{self.values[node.index][node_c.index]}", tags=("value", f"{node.index}_{node_c.index}_value"))
-                        rx, ry, rx2, ry2 = circle_coords(node.x + self.size // 2, node.y + self.size // 2, node_c.x + self.size // 2, node_c.y + self.size // 2)
-                        self.canvas.create_line(rx, ry, rx2, ry2, arrow="last", arrowshape=(0, 0, 0), tags=("value_line", f"{node.index}_{node_c.index}"))
+        for item in collisions:
+            node = self.nodes[item[1]]
+            node_c = self.nodes[self.find_node_index(item[0])]
+            value = random.randint(1, 31)
 
-                    if self.double_linked.get() == 0 or self.double_linked.get() == 1 or (self.double_linked.get() == 2 and random.randint(0, 10) > 5) or (self.double_linked.get() == 3 and len(self.canvas.find_withtag(f"{node.index}_{node_c.index}")) <= 0):
-                        self.values[node_c.index][node.index] = random.randint(1, 31) if self.double_linked.get() != 0 else self.values[node.index][node_c.index]
-                        self.canvas.create_text(node.x - (node.x - node_c.x) // 2, node.y - (node.y - node_c.y) // 2 - 20, anchor="center", state="hidden" if not self.value_visible else "normal", text=f"{self.values[node_c.index][node.index]}", tags=("value", f"{node_c.index}_{node.index}_value"))
-                        rx, ry, rx2, ry2 = circle_coords(node.x + self.size // 2, node.y + self.size // 2, node_c.x + self.size // 2, node_c.y + self.size // 2)
-                        self.canvas.create_line(rx2, ry2, rx, ry, arrow="last", arrowshape=(0, 0, 0), tags=("value_line", f"{node_c.index}_{node.index}"))
+            if link_way <= 1:
+                if link_way == 0 and self.values[node_c.index][node.index] != float('inf'):
+                    value = self.values[node_c.index][node.index]
+                
+                set_bridge(node, node_c, value)
+            elif link_way == 2:
+                if (self.value[node.index][node_c.index] == float('inf') and self.values[node_c.index][node.index] == float('inf')) or (self.values[node_c.index][node.index] != float('inf') and random.randint(0, 10) > 5):
+                    set_bridge(node, node_c, value)
+            else:
+                if self.values[node_c.index][node.index] == float('inf'):
+                    set_bridge(node, node_c, value)
 
         for node in self.nodes:
             self.canvas.lift(node.canvas_index)
@@ -413,11 +432,12 @@ class UI(Path):
         self.avg_value["text"] = ""
         self.canvas.delete("mark")
         self.find_node_entry.delete(0, "end")
-        self.node_visible_count()
         self.make_value()
+        self.node_visible_count()
 
     def start_algorithm(self):
-        if len(self.paths) > 0:
+        if len(self.paths) > 0 or sum(sum(x for x in y if float('inf') != x) for y in self.values) == 0:
+            print("연결된 노드가 없습니다.")
             return
 
         self.analyze_before_start()
