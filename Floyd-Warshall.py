@@ -1,6 +1,5 @@
 import tkinter as tk
 import math
-# import random
 from numpy import random
 
 class Node():
@@ -45,6 +44,7 @@ class UI(Path):
         self.paths = []
         self.selected = []
         self.analyze_widget = []
+        self.view_process = tk.IntVar(value=0)
         
         self.double_linked = tk.IntVar()
         self.order_visible = True
@@ -90,7 +90,7 @@ class UI(Path):
         self.scale.grid(row=1, column=1)
 
         tk.Label(control, text="거리: ").grid(row=2, column=0, padx=10)
-        self.node_between_length = tk.Scale(control, command=lambda e: self.update(), variable=tk.IntVar(value=100), orient="horizontal", from_=0, to=600, tickinterval=50, resolution=1, length=515)
+        self.node_between_length = tk.Scale(control, command=lambda e: self.update(), variable=tk.IntVar(value=85), orient="horizontal", from_=0, to=600, tickinterval=50, resolution=1, length=515)
         self.node_between_length.grid(row=2, column=1)
 
         result_frame = tk.Frame(control)
